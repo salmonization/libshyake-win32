@@ -35,6 +35,13 @@ Direct Win32 replacement, no `#ifdef _WIN32` (fork policy):
 liboqs is statically linked with its RNG patched to `RtlGenRandom`
 (build-time patch, not part of this tree).
 
+## Sync log
+
+- 2026-07-18: `shyake_mint_pow` unseeded `rand()` fixed upstream
+  (hashcash random segment now from /dev/urandom); ported here as
+  `fill_random`. Update the baseline hash once the upstream commit
+  lands.
+
 ## Verification
 
 - `tests/test_crypto.c` (from upstream) must pass on x64.

@@ -68,4 +68,8 @@ if(SHYAKE_BUILD_TESTS)
     target_include_directories(test_crypto PRIVATE src)
     target_link_libraries(test_crypto PRIVATE shyake_static)
     add_test(NAME crypto COMMAND test_crypto)
+
+    # needs a running instance; run manually, not via ctest
+    add_executable(test_e2e tests/test_e2e.c)
+    target_link_libraries(test_e2e PRIVATE shyake_static)
 endif()

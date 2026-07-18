@@ -245,8 +245,15 @@ shyake_mint_pow(const char *resource, int bits)
 
     char rand_str[13];
     const char charset[] = "abcdefghijklmnopqrstuvwxyz0123456789";
+    uint8_t rnd[12];
+    if (!fill_random(rnd, 12)) {
+        /* fallback: seed once from time and stack address */
+        srand((unsigned)(time(NULL) ^ (uintptr_t)rnd));
+        for (int i = 0; i < 12; i++)
+            rnd[i] = (uint8_t)rand();
+    }
     for (int i = 0; i < 12; i++)
-        rand_str[i] = charset[rand() % 36];
+        rand_str[i] = charset[rnd[i] % 36];
     rand_str[12] = '\0';
 
     char *header = malloc(256);

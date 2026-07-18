@@ -1,0 +1,34 @@
+Route liboqs system RNG through RtlGenRandom (SystemFunction036).
+
+Works on every Windows from XP SP3 through 11 on all three target
+architectures, so a single code path replaces the BCrypt (Vista+)
+and wincrypt branches. Link advapi32. Apply to liboqs 0.15.0 with
+`patch -p1` before building.
+
+--- a/src/common/rand/rand.c
++++ b/src/common/rand/rand.c
+@@ -65,20 +65,13 @@
+ 
+ // Select the implementation for OQS_randombytes_system
+ #if defined(_WIN32)
++// RtlGenRandom, available since Windows XP; exported by advapi32
++BOOLEAN WINAPI SystemFunction036(PVOID buffer, ULONG length);
++
+ void OQS_randombytes_system(uint8_t *random_array, size_t bytes_to_read) {
+-#if defined(OQS_HAVE_BCRYPT)
+-	if (BCryptGenRandom(NULL, random_array, (ULONG) bytes_to_read,
+-	                    BCRYPT_USE_SYSTEM_PREFERRED_RNG) != STATUS_SUCCESS) {
++	if (!SystemFunction036(random_array, (ULONG) bytes_to_read)) {
+ 		exit(EXIT_FAILURE); // better to fail than to return bad random data
+ 	}
+-#else
+-	HCRYPTPROV hCryptProv;
+-	if (!CryptAcquireContext(&hCryptProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT) ||
+-	        !CryptGenRandom(hCryptProv, (DWORD) bytes_to_read, random_array)) {
+-		exit(EXIT_FAILURE); // better to fail than to return bad random data
+-	}
+-	CryptReleaseContext(hCryptProv, 0);
+-#endif
+ }
+ 
+ #elif defined(__APPLE__)
