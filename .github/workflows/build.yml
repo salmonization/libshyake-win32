@@ -1,0 +1,89 @@
+name: build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - msystem: MINGW64
+            prefix: mingw-w64-x86_64
+            runner: windows-latest
+          - msystem: MINGW32
+            prefix: mingw-w64-i686
+            runner: windows-latest
+          - msystem: CLANGARM64
+            prefix: mingw-w64-clang-aarch64
+            runner: windows-11-arm
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.msystem }}
+          update: true
+          install: >-
+            git patch tar
+            ${{ matrix.prefix }}-cc
+            ${{ matrix.prefix }}-cmake
+            ${{ matrix.prefix }}-ninja
+            ${{ matrix.prefix }}-mbedtls
+            ${{ matrix.prefix }}-curl
+
+      - name: pin mbedtls 3.x
+        run: |
+          ver=$(pacman -Q ${{ matrix.prefix }}-mbedtls | awk '{print $2}')
+          case "$ver" in
+            3.*) echo "mbedtls $ver ok" ;;
+            *) echo "::error::mbedtls $ver is not 3.6 LTS"; exit 1 ;;
+          esac
+
+      - name: cache liboqs
+        uses: actions/cache@v4
+        with:
+          path: deps/${{ matrix.msystem }}
+          key: liboqs-0.15.0-${{ matrix.msystem }}-${{ hashFiles('patches/*.patch', 'scripts/build-liboqs.sh') }}
+
+      - name: build liboqs
+        run: |
+          if [ ! -f "deps/$MSYSTEM/lib/liboqs.a" ]; then
+              ./scripts/build-liboqs.sh
+          fi
+
+      - name: configure and build
+        run: |
+          cmake -G Ninja -B build
+          cmake --build build
+
+      - name: run test_crypto
+        run: ./build/test_crypto.exe
+
+      - name: xp pre-flight (x86 only)
+        if: matrix.msystem == 'MINGW32'
+        run: |
+          objdump -p build/test_crypto.exe | grep "DLL Name" | tee dlls.txt
+          if grep -qiE "api-ms-win-crt|ucrtbase|bcrypt" dlls.txt; then
+              echo "::error::post-XP DLL imported"; exit 1
+          fi
+          sse=$(objdump -d build/test_crypto.exe | grep -cE '\b(movsd|movaps|movapd|movups|addsd|mulsd|cvtsi2sd|cvttsd2si)' || true)
+          echo "sse2-like instructions: $sse"
+          if [ "$sse" != "0" ]; then
+              echo "::error::SSE instructions found in x86 build"; exit 1
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libshyake-${{ matrix.msystem }}
+          path: |
+            build/libshyake.a
+            build/shyake.dll
+            build/test_crypto.exe
+            build/test_e2e.exe
