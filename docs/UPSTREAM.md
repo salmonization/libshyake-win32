@@ -41,3 +41,8 @@ liboqs is statically linked with its RNG patched to `RtlGenRandom`
 - Ciphertexts must interoperate with the upstream libcrypto client
   (scrypt verified against RFC 7914 test vectors; ChaCha20-Poly1305
   against RFC 8439).
+- `tests/test_interop.c`: bidirectional artifact exchange between
+  the upstream libcrypto backend and this fork's mbedTLS backend
+  (encrypted key file at production scrypt parameters, sealed
+  blobs, base64). Verified passing in both directions at baseline
+  `c6bf410`; rerun after every upstream sync or crypto change.
