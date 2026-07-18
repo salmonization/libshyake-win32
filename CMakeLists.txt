@@ -14,6 +14,13 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 4 AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES "ARM")
     endif()
 endif()
 
+# self-built deps land in deps/<MSYSTEM>; add it natively so the
+# msys2 shell's path conversion never touches the list
+if(DEFINED ENV{MSYSTEM})
+    list(APPEND CMAKE_PREFIX_PATH
+         "${CMAKE_SOURCE_DIR}/deps/$ENV{MSYSTEM}")
+endif()
+
 find_package(CURL REQUIRED)
 
 find_package(MbedTLS QUIET)
@@ -25,6 +32,14 @@ if(NOT MbedTLS_FOUND)
 endif()
 
 find_library(OQS_LIB oqs REQUIRED)
+find_path(OQS_INCLUDE_DIR oqs/oqs.h)
+if(NOT OQS_INCLUDE_DIR)
+    message(FATAL_ERROR "oqs/oqs.h not found; run scripts/build-liboqs.sh")
+endif()
+add_library(OQS::oqs UNKNOWN IMPORTED)
+set_target_properties(OQS::oqs PROPERTIES
+    IMPORTED_LOCATION "${OQS_LIB}"
+    INTERFACE_INCLUDE_DIRECTORIES "${OQS_INCLUDE_DIR}")
 
 set(SHYAKE_SOURCES
     src/account.c
@@ -42,7 +57,7 @@ set(SHYAKE_SOURCES
 set(SHYAKE_LIBS
     CURL::libcurl
     MbedTLS::mbedcrypto
-    ${OQS_LIB}
+    OQS::oqs
     advapi32   # RtlGenRandom (SystemFunction036)
 )
 

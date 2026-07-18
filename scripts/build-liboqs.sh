@@ -34,6 +34,7 @@ cmake -G Ninja -S "liboqs-$VER" -B build \
     -DOQS_USE_OPENSSL=OFF \
     -DOQS_DIST_BUILD=OFF \
     -DOQS_OPT_TARGET=generic \
+    -DOQS_PERMIT_UNSUPPORTED_ARCHITECTURE=ON \
     -DOQS_MINIMAL_BUILD="KEM_ml_kem_768;SIG_ml_dsa_65"
 
 cmake --build build
