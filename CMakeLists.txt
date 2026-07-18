@@ -18,7 +18,7 @@ endif()
 # msys2 shell's path conversion never touches the list
 if(DEFINED ENV{MSYSTEM})
     list(APPEND CMAKE_PREFIX_PATH
-         "${CMAKE_SOURCE_DIR}/deps/$ENV{MSYSTEM}")
+         "${CMAKE_CURRENT_SOURCE_DIR}/deps/$ENV{MSYSTEM}")
 endif()
 
 find_package(CURL REQUIRED)
