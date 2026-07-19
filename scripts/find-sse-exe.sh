@@ -7,11 +7,15 @@ set -euo pipefail
 
 BIN="${1:?usage: find-sse-exe.sh <path-to-exe-or-dll>}"
 
+# awk's \b is a literal backspace, not a word boundary (unlike
+# GNU grep -E), so matching must happen in grep; awk only tags
+# each line with the function it falls under.
 objdump -d "$BIN" \
     | awk '
-        /^[0-9a-f]+ </ { fn = $0; next }
-        /\b(movsd|movaps|movapd|movups|addsd|mulsd|cvtsi2sd|cvttsd2si|movdqa|movdqu|pxor|paddd|pand)\b/ && /%xmm/ {
-            print fn
-        }
+        /^[0-9a-f]+ </ { fn = $0 }
+        { print fn "\t" $0 }
     ' \
+    | grep -E '\b(movsd|movaps|movapd|movups|addsd|mulsd|cvtsi2sd|cvttsd2si|movdqa|movdqu|pxor|paddd|pand)\b' \
+    | grep '%xmm' \
+    | cut -f1 \
     | sort | uniq -c | sort -rn
