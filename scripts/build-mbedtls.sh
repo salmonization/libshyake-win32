@@ -17,6 +17,13 @@ if [ ! -d "mbedtls-$VER" ]; then
     tar xjf "mbedtls-$VER.tar.bz2"
     (cd "mbedtls-$VER" && patch -p1 \
         < "$ROOT/patches/mbedtls-3.6-rtlgenrandom.patch")
+    # AES-NI is hand-written inline asm gated only by a runtime
+    # cpuid check, not by -march/-mno-sse; it always leaves xmm
+    # opcodes in the object file. XP/i686 targets (Crusoe TM5800)
+    # never have AES-NI, so drop the feature entirely.
+    (cd "mbedtls-$VER" && sed -i \
+        -e 's/^#define MBEDTLS_AESNI_C/\/\/#define MBEDTLS_AESNI_C/' \
+        include/mbedtls/mbedtls_config.h)
 fi
 
 EXTRA_C_FLAGS=""
