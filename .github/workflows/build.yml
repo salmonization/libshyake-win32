@@ -87,3 +87,5 @@ jobs:
             build/shyake.dll
             build/test_crypto.exe
             build/test_e2e.exe
+            powershell/Shyake.psm1
+            powershell/README.md
