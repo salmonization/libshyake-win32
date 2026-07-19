@@ -1,0 +1,44 @@
+Route mbedTLS platform entropy through RtlGenRandom
+(SystemFunction036, advapi32), available since Windows XP, so the
+same code path serves XP through Windows 11 on all three target
+architectures and no bcrypt.dll import is emitted. Also fixes the
+upstream oversight of not advancing the output pointer between
+chunks. Apply to mbedTLS 3.6.x with `patch -p1` before building.
+
+--- a/library/entropy_poll.c
++++ b/library/entropy_poll.c
+@@ -39,29 +39,26 @@
+ #if defined(_WIN32) && !defined(EFIX64) && !defined(EFI32)
+ 
+ #include <windows.h>
+-#include <bcrypt.h>
+ #include <intsafe.h>
+ 
++/* RtlGenRandom, available since Windows XP; exported by advapi32 */
++BOOLEAN WINAPI SystemFunction036(PVOID buffer, ULONG length);
++
+ int mbedtls_platform_entropy_poll(void *data, unsigned char *output, size_t len,
+                                   size_t *olen)
+ {
+     ((void) data);
+     *olen = 0;
+ 
+-    /*
+-     * BCryptGenRandom takes ULONG for size, which is smaller than size_t on
+-     * 64-bit Windows platforms. Extract entropy in chunks of len (dependent
+-     * on ULONG_MAX) size.
+-     */
+     while (len != 0) {
+         unsigned long ulong_bytes =
+             (len > ULONG_MAX) ? ULONG_MAX : (unsigned long) len;
+ 
+-        if (!BCRYPT_SUCCESS(BCryptGenRandom(NULL, output, ulong_bytes,
+-                                            BCRYPT_USE_SYSTEM_PREFERRED_RNG))) {
++        if (!SystemFunction036(output, ulong_bytes)) {
+             return MBEDTLS_ERR_ENTROPY_SOURCE_FAILED;
+         }
+ 
++        output += ulong_bytes;
+         *olen += ulong_bytes;
+         len -= ulong_bytes;
+     }
