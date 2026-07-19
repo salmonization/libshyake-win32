@@ -21,8 +21,29 @@ fi
 
 # XP/i686 line: no SSE, XP API level, generic C only
 EXTRA_C_FLAGS=""
+NO_CPU_EXT_FLAGS=()
 if [ "$MSYSTEM" = "MINGW32" ]; then
     EXTRA_C_FLAGS="-march=i686 -mno-sse -D_WIN32_WINNT=0x0501"
+    # liboqs' CMake probes the build HOST's cpuid, not the target
+    # arch flags, and bolts per-file -msse2/-mavx2 onto the
+    # optimized ML-KEM/ML-DSA code paths regardless of
+    # OQS_OPT_TARGET=generic. Disable every feature switch so it
+    # falls back to the portable reference implementation.
+    NO_CPU_EXT_FLAGS=(
+        -DOQS_USE_AVX2_INSTRUCTIONS=OFF
+        -DOQS_USE_AVX512_INSTRUCTIONS=OFF
+        -DOQS_USE_AVX512VBMI2_INSTRUCTIONS=OFF
+        -DOQS_USE_SSE2_INSTRUCTIONS=OFF
+        -DOQS_USE_SSE3_INSTRUCTIONS=OFF
+        -DOQS_USE_SSSE3_INSTRUCTIONS=OFF
+        -DOQS_USE_BMI1_INSTRUCTIONS=OFF
+        -DOQS_USE_BMI2_INSTRUCTIONS=OFF
+        -DOQS_USE_ADX_INSTRUCTIONS=OFF
+        -DOQS_USE_AES_INSTRUCTIONS=OFF
+        -DOQS_USE_PCLMULQDQ_INSTRUCTIONS=OFF
+        -DOQS_USE_VPCLMULQDQ_INSTRUCTIONS=OFF
+        -DOQS_USE_POPCNT_INSTRUCTIONS=OFF
+    )
 fi
 
 cmake -G Ninja -S "liboqs-$VER" -B build \
@@ -35,7 +56,8 @@ cmake -G Ninja -S "liboqs-$VER" -B build \
     -DOQS_DIST_BUILD=OFF \
     -DOQS_OPT_TARGET=generic \
     -DOQS_PERMIT_UNSUPPORTED_ARCHITECTURE=ON \
-    -DOQS_MINIMAL_BUILD="KEM_ml_kem_768;SIG_ml_dsa_65"
+    -DOQS_MINIMAL_BUILD="KEM_ml_kem_768;SIG_ml_dsa_65" \
+    "${NO_CPU_EXT_FLAGS[@]}"
 
 cmake --build build
 cmake --install build
