@@ -87,7 +87,9 @@ jobs:
           if grep -qiE "api-ms-win-crt|ucrtbase|bcrypt" dlls.txt; then
               echo "::error::post-XP DLL imported"; exit 1
           fi
-          sse=$(objdump -d build/test_crypto.exe | grep -cE '\b(movsd|movaps|movapd|movups|addsd|mulsd|cvtsi2sd|cvttsd2si)' || true)
+          # match SSE mnemonics only when operating on xmm regs;
+          # movsd/movsb are also legacy x86 string-move mnemonics
+          sse=$(objdump -d build/test_crypto.exe | grep -E '\b(movsd|movaps|movapd|movups|addsd|mulsd|cvtsi2sd|cvttsd2si)\b' | grep -c '%xmm' || true)
           echo "sse2-like instructions: $sse"
           if [ "$sse" != "0" ]; then
               echo "::error::SSE instructions found in x86 build"; exit 1
