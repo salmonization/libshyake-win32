@@ -19,7 +19,8 @@ fi
 
 EXTRA_C_FLAGS=""
 if [ "$MSYSTEM" = "MINGW32" ]; then
-    EXTRA_C_FLAGS="-march=i686 -mno-sse -D_WIN32_WINNT=0x0501"
+    EXTRA_C_FLAGS="-march=i686 -mno-sse -D_WIN32_WINNT=0x0501 \
+-D__USE_MINGW_ANSI_STDIO=1"
 fi
 
 cmake -G Ninja -S "curl-$VER" -B build-curl \

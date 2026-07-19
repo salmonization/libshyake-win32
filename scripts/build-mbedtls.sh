@@ -21,13 +21,16 @@ fi
 
 EXTRA_C_FLAGS=""
 if [ "$MSYSTEM" = "MINGW32" ]; then
-    EXTRA_C_FLAGS="-march=i686 -mno-sse -D_WIN32_WINNT=0x0501"
+    # ANSI stdio: msvcrt printf lacks %lld (also fixes -Wformat)
+    EXTRA_C_FLAGS="-march=i686 -mno-sse -D_WIN32_WINNT=0x0501 \
+-D__USE_MINGW_ANSI_STDIO=1"
 fi
 
 cmake -G Ninja -S "mbedtls-$VER" -B build-mbedtls \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX="$PREFIX" \
     -DCMAKE_C_FLAGS="$EXTRA_C_FLAGS" \
+    -DMBEDTLS_FATAL_WARNINGS=OFF \
     -DENABLE_TESTING=OFF \
     -DENABLE_PROGRAMS=OFF \
     -DGEN_FILES=OFF
